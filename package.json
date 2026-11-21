@@ -1,0 +1,46 @@
+{
+  "name": "gta6-mcp",
+  "version": "1.0.0",
+  "description": "MCP knowledge-base server for Grand Theft Auto VI: live GTA Wiki search, official facts, platform-aware and spoiler-aware answers for Claude.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc",
+    "test": "node --import tsx --test test/wiki.test.ts test/mcp.test.ts",
+    "pack": "npm run build && mcpb pack . gta6-mcp.mcpb"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "gta6",
+    "gta-vi",
+    "grand-theft-auto",
+    "rockstar",
+    "game-guide"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "zod": "^4.6.7"
+  },
+  "bin": {
+    "gta6-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "manifest.json"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

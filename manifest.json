@@ -3,23 +3,41 @@
   "manifest_version": "0.3",
   "name": "gta6-mcp",
   "display_name": "GTA 6 Guide",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Grand Theft Auto VI companion for Claude: live GTA Wiki lookups, official facts, console-aware and spoiler-aware answers.",
   "long_description": "Ask Claude anything about Grand Theft Auto VI. This extension gives Claude live access to the community GTA Wiki (missions, vehicles, characters, weapons, locations, radio…) plus a small set of sourced official facts (release, platforms, PC status, setting). Answers use your console's button names (PlayStation or Xbox) and story-heavy pages are withheld unless you agree to spoilers. GTA VI is console-only, so there are no save files to read; tell Claude where you are in the story for tailored help.",
-  "author": { "name": "Adnan Kutay Yüksel", "url": "https://github.com/adnan-kutay-yuksel" },
-  "repository": { "type": "git", "url": "https://github.com/adnan-kutay-yuksel/gta6-mcp" },
+  "author": {
+    "name": "Adnan Kutay Yüksel",
+    "url": "https://github.com/adnan-kutay-yuksel"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adnan-kutay-yuksel/gta6-mcp"
+  },
   "homepage": "https://github.com/adnan-kutay-yuksel/gta6-mcp",
   "documentation": "https://github.com/adnan-kutay-yuksel/gta6-mcp#readme",
   "support": "https://github.com/adnan-kutay-yuksel/gta6-mcp/issues",
   "license": "MIT",
-  "keywords": ["gta", "gta 6", "gta vi", "grand theft auto", "rockstar", "guide", "wiki"],
+  "keywords": [
+    "gta",
+    "gta 6",
+    "gta vi",
+    "grand theft auto",
+    "rockstar",
+    "guide",
+    "wiki"
+  ],
   "server": {
     "type": "node",
     "entry_point": "dist/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/dist/index.js"],
-      "env": { "GTA6_PLATFORM": "${user_config.console}" }
+      "args": [
+        "${__dirname}/dist/index.js"
+      ],
+      "env": {
+        "GTA6_PLATFORM": "${user_config.console}"
+      }
     }
   },
   "user_config": {
@@ -31,14 +49,46 @@
     }
   },
   "tools": [
-    { "name": "gta6_overview", "description": "Official facts plus the live wiki summary." },
-    { "name": "gta6_platform", "description": "Platform status, PC release status and controller vocabulary." },
-    { "name": "gta6_search", "description": "Search the GTA Wiki (GTA VI first)." },
-    { "name": "gta6_page", "description": "Read a wiki page or section, spoiler-aware." },
-    { "name": "gta6_list", "description": "List missions, vehicles, characters, weapons, locations and more." }
+    {
+      "name": "gta6_overview",
+      "description": "Official facts plus the live wiki summary."
+    },
+    {
+      "name": "gta6_platform",
+      "description": "Platform status, PC release status and controller vocabulary."
+    },
+    {
+      "name": "gta6_search",
+      "description": "Search the GTA Wiki (GTA VI first)."
+    },
+    {
+      "name": "gta6_page",
+      "description": "Read a wiki page or section, spoiler-aware."
+    },
+    {
+      "name": "gta6_list",
+      "description": "List missions, vehicles, characters, weapons, locations and more."
+    }
   ],
   "prompts": [
-    { "name": "spoiler_free_help", "description": "Ask for help without story spoilers.", "arguments": ["question", "progress"], "text": "I'm playing GTA VI (progress: ${arguments.progress}). ${arguments.question} Use the gta6 tools, cite the wiki, and don't spoil anything beyond my progress." }
+    {
+      "name": "spoiler_free_help",
+      "description": "Ask for help without story spoilers.",
+      "arguments": [
+        "question",
+        "progress"
+      ],
+      "text": "I'm playing GTA VI (progress: ${arguments.progress}). ${arguments.question} Use the gta6 tools, cite the wiki, and don't spoil anything beyond my progress."
+    }
   ],
-  "compatibility": { "platforms": ["darwin", "win32", "linux"], "runtimes": { "node": ">=18.0.0" } }
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
 }

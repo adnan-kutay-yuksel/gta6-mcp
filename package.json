@@ -1,6 +1,6 @@
 {
   "name": "gta6-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP knowledge-base server for Grand Theft Auto VI: live GTA Wiki search, official facts, platform-aware and spoiler-aware answers for Claude.",
   "main": "dist/index.js",
   "scripts": {

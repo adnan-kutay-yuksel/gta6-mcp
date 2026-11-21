@@ -22,6 +22,15 @@ GTA VI launched on **19 November 2026 for PlayStation 5 and Xbox Series X|S only
 
 Plus a `spoiler_free_help` prompt.
 
+## Tested live
+
+Each release is run against the live GTA Wiki with realistic player questions: searches ("fastest car", "cheats", "safehouse", "wanted level", "trophies"), character, location, mission, vehicle and weapon pages, section reads, and the category lists. Tests check three things:
+- GTA VI pages are picked over same-named pages from other games (e.g. "Cheetah" → the GTA VI car).
+- *GTA Vice City* pages are not mistaken for GTA VI.
+- Story-heavy pages (missions, protagonists) are withheld unless spoilers are allowed.
+
+Run it with `LIVE=1 npm test`.
+
 ## Install
 
 ### Claude Desktop (one click)

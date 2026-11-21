@@ -4,7 +4,7 @@ import { FACTS, FACTS_AS_OF } from "./facts.js";
 import { platformReport } from "./platform.js";
 import { findCategories, getPage, listCategory, search, WIKI_BASE } from "./wiki.js";
 
-export const VERSION = "1.0.0";
+export const VERSION = "1.1.0";
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 const ok = (data: unknown): ToolResult => ({ content: [{ type: "text", text: JSON.stringify(data, null, 1) }] });
@@ -64,7 +64,7 @@ export function createServer(): McpServer {
 
   server.registerTool("gta6_page", {
     title: "Read a GTA Wiki page",
-    description: "Read a page (automatically prefers the GTA VI version, e.g. 'Lucia' → the GTA VI article). Returns infobox, sections, categories, spoilerRisk and plain text; story-heavy text is withheld unless spoilers=true. Use `section` to read one section (e.g. 'Walkthrough', 'Locations', 'Trivia').",
+    description: "Read a page (automatically prefers the GTA VI version, coversGta6 tells whether the page is about GTA VI at all, e.g. 'Lucia' → the GTA VI article). Returns infobox, sections, categories, spoilerRisk and plain text; story-heavy text is withheld unless spoilers=true. Use `section` to read one section (e.g. 'Walkthrough', 'Locations', 'Trivia').",
     inputSchema: {
       title: z.string(),
       section: z.string().optional(),
@@ -87,7 +87,7 @@ export function createServer(): McpServer {
     // 1) known topic or an explicit GTA VI category name
     if (mapped || /GTA VI/i.test(topic)) {
       const res = await listCategory(mapped ?? topic, limit, cursor);
-      if (res.pages.length || res.subcategories.length) return res;
+      if (res.pages.length || res.subcategories.length) return { ...res, note: "Counts reflect current GTA Wiki coverage, which is still growing after launch." };
     }
     // 2) a GTA VI-specific category matching the topic
     const found = await findCategories(topic);
@@ -95,7 +95,12 @@ export function createServer(): McpServer {
       const res = await listCategory(found[0], limit, cursor);
       return { ...res, otherMatchingCategories: found.slice(1) };
     }
-    return { topic, found: false, hint: `No GTA VI category matches "${topic}". Try gta6_search.`, knownTopics: Object.keys(TOPICS) };
+    // 3) no category: fall back to GTA VI search results (e.g. "radio stations" is an article, not a category)
+    const hits = (await search(topic, 10)).filter((h) => h.gta6);
+    return {
+      topic, found: false, note: `No GTA VI category for "${topic}"; these GTA VI pages match instead (read them with gta6_page).`,
+      pages: hits.map((h) => h.title), knownTopics: Object.keys(TOPICS),
+    };
   }));
 
   server.registerPrompt("spoiler_free_help", {

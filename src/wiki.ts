@@ -41,7 +41,25 @@ export function pageUrl(title: string): string {
   return `${WIKI_BASE}/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
 }
 
-const GTA6_HINT = /\b(GTA VI|GTA 6|Grand Theft Auto VI|Leonida|Vice City|Lucia|Jason Duval|HD Universe)\b/i;
+/** Title/snippet hints. Case-sensitive on purpose: "GTA Vice City" must not match "GTA VI". */
+const GTA6_HINT = /\b(GTA VI|GTA 6|Grand Theft Auto VI|Leonida|Lucia Caminos|Jason Duval)\b/;
+/** A category that belongs to GTA VI (e.g. "Category:Vehicles in GTA VI", "Locations in GTA VI in Ambrosia"). */
+export const GTA6_CATEGORY = /\bGTA VI\b|\bGrand Theft Auto VI\b/;
+
+/** Which of these titles are in a GTA VI category (one batched request). */
+export async function gta6Titles(titles: string[]): Promise<Set<string>> {
+  const out = new Set<string>();
+  if (!titles.length) return out;
+  const c = await api({ action: "query", titles: titles.slice(0, 50).join("|"), prop: "categories", cllimit: "max", redirects: 1 });
+  const redirects = (c?.query?.redirects ?? []) as { from: string; to: string }[];
+  for (const p of (c?.query?.pages ?? []) as { title: string; categories?: { title: string }[] }[]) {
+    if ((p.categories ?? []).some((x) => GTA6_CATEGORY.test(x.title))) {
+      out.add(p.title);
+      for (const r of redirects) if (r.to === p.title) out.add(r.from);
+    }
+  }
+  return out;
+}
 
 export interface SearchHit {
   title: string;
@@ -69,18 +87,11 @@ export async function search(query: string, limit = 10): Promise<SearchHit[]> {
     const snippet = stripHtml(h.snippet ?? "");
     hits.push({ title: h.title, url: pageUrl(h.title), snippet, gta6: GTA6_HINT.test(h.title) || GTA6_HINT.test(snippet) });
   }
-  // mark hits that belong to a GTA VI category (one batched request)
-  if (hits.length) {
-    try {
-      const c = await api({ action: "query", titles: hits.map((h) => h.title).slice(0, 50).join("|"), prop: "categories", cllimit: "max", redirects: 1 });
-      for (const p of (c?.query?.pages ?? []) as { title: string; categories?: { title: string }[] }[]) {
-        if ((p.categories ?? []).some((x) => /GTA VI|Grand Theft Auto VI/i.test(x.title))) {
-          const h = hits.find((x) => x.title === p.title);
-          if (h) h.gta6 = true;
-        }
-      }
-    } catch { /* best effort */ }
-  }
+  // a hit is about GTA VI if it sits in a GTA VI category (or is a GTA VI category/list itself)
+  try {
+    const six = await gta6Titles(hits.map((h) => h.title));
+    for (const h of hits) h.gta6 = six.has(h.title) || GTA6_CATEGORY.test(h.title) || (h.gta6 && !/\bGTA (V|IV|III|San Andreas|Vice City)\b/.test(h.title));
+  } catch { /* best effort: keep title hints */ }
   hits.sort((x, y) => Number(y.gta6) - Number(x.gta6));
   return hits.slice(0, limit);
 }
@@ -94,6 +105,7 @@ export interface PageResult {
   text: string;
   truncated: boolean;
   infobox?: Record<string, string>;
+  coversGta6: boolean;
   spoilerRisk: "high" | "medium" | "low";
   spoilerSections: string[];
   textWithheld?: string;
@@ -179,13 +191,17 @@ export async function resolveTitle(title: string): Promise<string> {
     const n = normalized.find((x) => x.from === t)?.to ?? t;
     return redirects.find((x) => x.from === n)?.to ?? n;
   };
-  for (const c of candidates) {
-    const real = resolve(c);
-    const p = pages.find((x) => x.title === real);
-    if (p && !p.missing) return real;
-  }
-  // fall back to the best search hit
-  const hits = await search(title, 3);
+  const existing = [...new Set(candidates.map(resolve).filter((t) => pages.some((x) => x.title === t && !x.missing)))];
+  let six = new Set<string>();
+  try { six = await gta6Titles(existing); } catch { /* ignore */ }
+  const gta6Existing = existing.find((t) => six.has(t));
+  if (gta6Existing) return gta6Existing;
+  // e.g. "Cheetah" → "'95 Grotti Cheetah": prefer a GTA VI search hit whose title contains the query
+  const hits = await search(title, 8);
+  const words = title.toLowerCase().split(/\s+/).filter(Boolean);
+  const gta6Hit = hits.find((h) => h.gta6 && words.every((w) => h.title.toLowerCase().includes(w)));
+  if (gta6Hit) return gta6Hit.title;
+  if (existing.length) return existing[0];
   if (hits.length) return hits[0].title;
   throw new Error(`No GTA Wiki page found for "${title}".`);
 }
@@ -229,6 +245,7 @@ export async function getPage(title: string, opts: { section?: string; maxChars?
     text: text.slice(0, maxChars),
     truncated: text.length > maxChars,
     infobox: opts.section ? undefined : parseInfobox(p.wikitext ?? ""),
+    coversGta6: categories.some((c) => GTA6_CATEGORY.test(c)) || GTA6_CATEGORY.test(p.title),
     spoilerRisk: risk,
     spoilerSections,
     ...(textWithheld ? { textWithheld, safeSections } : {}),
@@ -266,6 +283,6 @@ export async function findCategories(topic: string, limit = 10): Promise<string[
   const d = await api({ action: "query", list: "search", srsearch: `${topic} GTA VI`, srnamespace: 14, srlimit: limit * 2 });
   return ((d?.query?.search ?? []) as { title: string }[])
     .map((h) => h.title.replace(/^Category:/, ""))
-    .filter((t) => /GTA VI|Grand Theft Auto VI/i.test(t))
+    .filter((t) => GTA6_CATEGORY.test(t))
     .slice(0, limit);
 }

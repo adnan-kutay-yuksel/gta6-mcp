@@ -39,13 +39,28 @@ test("infobox parsing handles nested links/templates", () => {
 
 test("resolveTitle prefers the GTA VI article", async () => {
   fakeWiki((p) => {
+    if (p.get("prop") === "categories") return { query: { pages: [{ title: "Lucia Caminos", categories: [{ title: "Category:Characters in GTA VI" }] }] } };
     if (p.get("titles")) return { query: { pages: [{ title: "Lucia (GTA VI)", missing: true }, { title: "Lucia (Grand Theft Auto VI)", missing: true }, { title: "Lucia (HD Universe)", missing: true }, { title: "Lucia Caminos" }], redirects: [{ from: "Lucia", to: "Lucia Caminos" }] } };
   });
   assert.equal(await resolveTitle("Lucia"), "Lucia Caminos");
 });
 
+test("resolveTitle prefers a GTA VI search hit over a GTA V page with the same name", async () => {
+  fakeWiki((p) => {
+    if (p.get("prop") === "categories") {
+      const t = p.get("titles") ?? "";
+      if (t.includes("'95 Grotti Cheetah")) return { query: { pages: [{ title: "'95 Grotti Cheetah", categories: [{ title: "Category:Vehicles in GTA VI" }] }, { title: "Cheetah (GTA Vice City)", categories: [{ title: "Category:Vehicles in GTA Vice City" }] }] } };
+      return { query: { pages: [{ title: "Cheetah (HD Universe)", categories: [{ title: "Category:Vehicles in GTA V" }] }] } };
+    }
+    if (p.get("list") === "search") return { query: { search: [{ title: "Cheetah (GTA Vice City)", snippet: "" }, { title: "'95 Grotti Cheetah", snippet: "" }] } };
+    if (p.get("titles")) return { query: { pages: [{ title: "Cheetah (GTA VI)", missing: true }, { title: "Cheetah (Grand Theft Auto VI)", missing: true }, { title: "Cheetah (HD Universe)" }, { title: "Cheetah", missing: true }] } };
+  });
+  assert.equal(await resolveTitle("Cheetah"), "'95 Grotti Cheetah");
+});
+
 test("spoiler-heavy pages are withheld unless spoilers=true", async () => {
   fakeWiki((p) => {
+    if (p.get("prop") === "categories") return { query: { pages: [{ title: "Lucia Caminos (GTA VI)", categories: [{ title: "Category:Characters in GTA VI" }] }] } };
     if (p.get("titles")) return { query: { pages: [{ title: "Lucia Caminos (GTA VI)" }] } };
     if (p.get("action") === "parse" && !p.get("section"))
       return { parse: { title: "Lucia Caminos (GTA VI)", wikitext: LUCIA_WIKITEXT, categories: [{ category: "Characters_in_GTA_VI" }], sections: [{ index: "1", line: "History", level: "2" }, { index: "2", line: "Ending", level: "2" }, { index: "3", line: "Appearance", level: "2" }] } };
@@ -58,6 +73,7 @@ test("spoiler-heavy pages are withheld unless spoilers=true", async () => {
   assert.deepEqual(safe.safeSections, ["Appearance"]);
   assert.match(safe.textWithheld!, /spoilers=true/);
   assert.equal(safe.infobox?.voice, "Manni L. Perez");
+  assert.equal(safe.coversGta6, true);
   const sec = await getPage("Lucia Caminos", { section: "appearance" });
   assert.match(sec.text, /Tattoos/);
   const blocked = await getPage("Lucia Caminos", { section: "Ending" });
@@ -80,7 +96,7 @@ test("search marks GTA VI hits by category and ranks them first", async () => {
 test("category listing and discovery", async () => {
   fakeWiki((p) => {
     if (p.get("list") === "categorymembers") return { query: { categorymembers: [{ title: "Gear Up", ns: 0 }, { title: "Category:Story missions in GTA VI", ns: 14 }] }, continue: { cmcontinue: "abc" } };
-    if (p.get("list") === "search") return { query: { search: [{ title: "Category:Radio Stations in GTA VI" }, { title: "Category:Radio Stations" }] } };
+    if (p.get("list") === "search") return { query: { search: [{ title: "Category:Radio Stations in GTA VI" }, { title: "Category:Radio Stations" }, { title: "Category:Radio Stations in GTA Vice City" }] } };
   });
   const l = await listCategory("Missions in GTA VI");
   assert.deepEqual(l.pages, ["Gear Up"]);
